@@ -29,9 +29,6 @@ WORKDIR /app
 # Copy the built JAR from the previous build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Copy SQLite database to /workspace (Render’s persistent storage)
-COPY ecommerce.db /workspace/ecommerce.db
-
 # Expose the port your Spring Boot app runs on
 EXPOSE 8080
 
