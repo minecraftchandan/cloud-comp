@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <link rel="icon" type="image/png" href="https://i.pinimg.com/736x/f2/b6/9c/f2b69c4361ecc3e3a6b672aaf2fee5f4.jpg">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Error - NotShop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .error-container {
+            max-width: 600px;
+            margin: 100px auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            padding: 50px 30px;
+        }
+
+        .error-icon {
+            font-size: 5rem;
+            color: #dc3545;
+            margin-bottom: 30px;
+        }
+
+        .error-title {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+
+        .error-message {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .error-details {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 30px 0;
+            color: #721c24;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="/home" class="home-icon">🏠</a>
+        <nav>
+            <a href="/products">Products</a>
+            <a href="/cart">Cart</a>
+            <a href="/orders">Orders</a>
+            <a href="/profile">Profile</a>
+            <a href="/logout">Logout</a>
+        </nav>
+    </header>
+
+    <div class="error-container">
+        <div class="error-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        
+        <h1 class="error-title">Payment Error</h1>
+        
+        <p class="error-message">
+            We encountered an issue processing your payment. Please try again or contact support if the problem persists.
+        </p>
+
+        <div class="error-details" th:if="${error}">
+            <strong><i class="fas fa-info-circle"></i> Error Details:</strong>
+            <br>
+            <span th:text="${error}">Error message</span>
+        </div>
+
+        <div class="action-buttons">
+            <a href="/cart" class="btn btn-primary">
+                <i class="fas fa-arrow-left"></i> Back to Cart
+            </a>
+            <a href="/payment/checkout" class="btn btn-secondary">
+                <i class="fas fa-redo"></i> Try Again
+            </a>
+        </div>
+    </div>
+</body>
+</html>

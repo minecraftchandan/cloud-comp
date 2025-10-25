@@ -1,0 +1,11 @@
+C:\Users\chand\OneDrive\Desktop\not_bot-main\src\main\java\com\example\ecommerce\config\AppConfig.java
+C:\Users\chand\OneDrive\Desktop\not_bot-main\src\main\java\com\example\ecommerce\config\FirebaseConfig.java
+C:\Users\chand\OneDrive\Desktop\not_bot-main\src\main\java\com\example\ecommerce\config\FirebaseProperties.java
+C:\Users\chand\OneDrive\Desktop\not_bot-main\src\main\java\com\example\ecommerce\controller\AdminPanelController.java
+C:\Users\chand\OneDrive\Desktop\not_bot-main\src\main\java\com\example\ecommerce\controller\DashboardController.java
+C:\Users\chand\OneDrive\Desktop\not_bot-main\src\main\java\com\example\ecommerce\controller\LoginController.java
+C:\Users\chand\OneDrive\Desktop\not_bot-main\src\main\java\com\example\ecommerce\controller\ProductController.java
+C:\Users\chand\OneDrive\Desktop\not_bot-main\src\main\java\com\example\ecommerce\EcommerceApplication.java
+C:\Users\chand\OneDrive\Desktop\not_bot-main\src\main\java\com\example\ecommerce\model\Product.java
+C:\Users\chand\OneDrive\Desktop\not_bot-main\src\main\java\com\example\ecommerce\repository\ProductRepository.java
+C:\Users\chand\OneDrive\Desktop\not_bot-main\src\main\java\com\example\ecommerce\service\FirestoreService.java

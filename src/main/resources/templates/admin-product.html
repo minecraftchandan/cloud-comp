@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <link rel="icon" type="image/png" href="https://i.pinimg.com/736x/f2/b6/9c/f2b69c4361ecc3e3a6b672aaf2fee5f4.jpg">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Manage Products</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/products.css">
+</head>
+<body>
+<header>
+    <a href="/home" class="home-icon">🏠</a>
+    <nav>
+            <a href="/products">Products</a>
+            <a href="/admin/products" th:if="${session.username == 'admin'}">Manage Products</a>
+            <a href="/admin/orders" th:if="${session.username == 'admin'}">Manage Orders</a>
+            <a href="/Dashboard" th:if="${session.username == 'admin'}">Dashboard</a>
+            <a href="/logout">Logout</a>
+        </nav>
+</header>
+
+<div class="search-filter-container">
+    <div class="search-section">
+        <input type="text" id="searchInput" placeholder="Search products..." />
+        <button id="searchBtn">Search</button>
+        <button id="clearSearch">Clear</button>
+        <button id="addProductBtn" class="add-product-btn">Add Product</button>
+    </div>
+    <div class="filter-section">
+        <label for="categoryFilter">Filter by Category:</label>
+        <select id="categoryFilter">
+            <option value="">All Categories</option>
+        </select>
+    </div>
+</div>
+
+<h1>Manage Products</h1>
+<div id="productsContainer"></div>
+
+<div id="paginationContainer" style="text-align: center; margin: 20px 0;">
+    <button id="prevPage" disabled>Previous</button>
+    <span id="pageInfo"></span>
+    <button id="nextPage" disabled>Next</button>
+</div>
+
+<!-- Add Product Modal -->
+<div id="addProductModal" class="modal">
+    <div class="modal-content modal-form">
+        <span class="close">&times;</span>
+        <h3>Add New Product</h3>
+        <div class="form-container">
+            <div class="form-left">
+                <form id="addProductForm">
+                    <input type="text" id="productName" placeholder="Product Name" required>
+                    <input type="number" id="productPrice" placeholder="Price" step="0.01" required>
+                    <input type="text" id="productImage" placeholder="Image URL" required>
+                    <input type="text" id="productCategory" placeholder="Category" required>
+                    <textarea id="productDescription" placeholder="Description" rows="4"></textarea>
+                    <button type="submit">Add Product</button>
+                </form>
+            </div>
+            <div class="form-right">
+                <div class="image-preview">
+                    <img id="addImagePreview" src="https://via.placeholder.com/300x200?text=Image+Preview" alt="Preview">
+                    <p>Image Preview</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Product View Modal -->
+<div id="productModal" class="modal">
+    <div class="modal-content modal-large">
+        <span class="close">&times;</span>
+        <div class="modal-body">
+            <div class="modal-left">
+                <img id="modalProductImage" src="" alt="">
+            </div>
+            <div class="modal-right">
+                <h3 id="modalProductName"></h3>
+                <p id="modalProductDescription"></p>
+                <p id="modalProductPrice"></p>
+                <div class="admin-modal-actions">
+                    <button id="modalEditBtn" class="edit-btn">Edit Product</button>
+                    <button id="modalDeleteBtn" class="delete-btn">Delete Product</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Product Modal -->
+<div id="editProductModal" class="modal">
+    <div class="modal-content modal-form">
+        <span class="close">&times;</span>
+        <h3>Edit Product</h3>
+        <div class="form-container">
+            <div class="form-left">
+                <form id="editProductForm">
+                    <input type="hidden" id="editProductId">
+                    <input type="text" id="editProductName" placeholder="Product Name" required>
+                    <input type="number" id="editProductPrice" placeholder="Price" step="0.01" required>
+                    <input type="text" id="editProductImage" placeholder="Image URL" required>
+                    <input type="text" id="editProductCategory" placeholder="Category" required>
+                    <textarea id="editProductDescription" placeholder="Description" rows="4"></textarea>
+                    <button type="submit">Update Product</button>
+                </form>
+            </div>
+            <div class="form-right">
+                <div class="image-preview">
+                    <img id="editImagePreview" src="https://via.placeholder.com/300x200?text=Image+Preview" alt="Preview">
+                    <p>Image Preview</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        const addModal = $('#addProductModal');
+        const editModal = $('#editProductModal');
+        const productModal = $('#productModal');
+        const modalName = $('#modalProductName');
+        const modalImage = $('#modalProductImage');
+        const modalPrice = $('#modalProductPrice');
+        const modalDescription = $('#modalProductDescription');
+        let currentPage = 0;
+        const pageSize = 20;
+        let currentProductData = {};
+
+        // Modal controls
+        $('#addProductBtn').click(() => addModal.show());
+        $('.close').click(function() {
+            $(this).closest('.modal').hide();
+        });
+
+        // Image preview functionality
+        $('#productImage').on('input', function() {
+            const url = $(this).val();
+            if (url) {
+                $('#addImagePreview').attr('src', url);
+            } else {
+                $('#addImagePreview').attr('src', 'https://via.placeholder.com/300x200?text=Image+Preview');
+            }
+        });
+
+        $('#editProductImage').on('input', function() {
+            const url = $(this).val();
+            if (url) {
+                $('#editImagePreview').attr('src', url);
+            } else {
+                $('#editImagePreview').attr('src', 'https://via.placeholder.com/300x200?text=Image+Preview');
+            }
+        });
+
+        // Add product
+        $('#addProductForm').submit(function(e) {
+            e.preventDefault();
+            $.post('/admin/manageProduct', {
+                actionType: 'add',
+                name: $('#productName').val(),
+                price: $('#productPrice').val(),
+                pictureUrl: $('#productImage').val(),
+                category: $('#productCategory').val(),
+                description: $('#productDescription').val()
+            }).done(() => {
+                addModal.hide();
+                $('#addProductForm')[0].reset();
+                fetchProducts();
+                alert('Product added successfully!');
+            });
+        });
+
+        // Edit product
+        $('#editProductForm').submit(function(e) {
+            e.preventDefault();
+            $.post('/admin/manageProduct', {
+                actionType: 'update',
+                id: $('#editProductId').val(),
+                name: $('#editProductName').val(),
+                price: $('#editProductPrice').val(),
+                pictureUrl: $('#editProductImage').val(),
+                category: $('#editProductCategory').val(),
+                description: $('#editProductDescription').val()
+            }).done(() => {
+                editModal.hide();
+                fetchProducts();
+                alert('Product updated successfully!');
+            });
+        });
+
+        function fetchProducts(category = '', search = '', page = 0) {
+            const params = { page: page, size: pageSize };
+            if (category) params.category = category;
+            if (search) params.search = search;
+            
+            $.get('/api/products', params, function (data) {
+                const productsContainer = $('#productsContainer');
+                productsContainer.empty();
+
+                if (data.products.length === 0) {
+                    productsContainer.html('<p>No products available.</p>');
+                    $('#paginationContainer').hide();
+                    return;
+                }
+
+                $('#paginationContainer').show();
+                updatePaginationControls(data.currentPage, data.totalPages);
+
+                data.products.forEach(function (product) {
+                    let productElement = `
+                        <div class="product-card" 
+                            data-id="${product.id}"
+                            data-name="${product.name}"
+                            data-image="${product.pictureUrl}"
+                            data-price="${product.price}"
+                            data-category="${product.category}"
+                            data-description="${product.description || ''}">
+                            <div class="product-image-container">
+                                <img src="${product.pictureUrl}" alt="${product.name}">
+                            </div>
+                            <div class="product-info">
+                                <h3 class="product-name">${product.name.length > 20 ? product.name.substring(0, 20) + '...' : product.name}</h3>
+                                <div class="product-price">$${product.price}</div>
+                                <div class="admin-actions">
+                                    <button class="edit-btn" onclick="editProduct('${product.id}', '${product.name}', ${product.price}, '${product.pictureUrl}', '${product.category}', '${(product.description || '').replace(/'/g, "\\'")}')">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="delete-btn" onclick="deleteProduct('${product.id}')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    productsContainer.append(productElement);
+                });
+
+                // Add click event to product cards
+                $('.product-card').click(function (e) {
+                    if (!$(e.target).hasClass('edit-btn') && !$(e.target).hasClass('delete-btn')) {
+                        currentProductData = {
+                            id: $(this).data('id'),
+                            name: $(this).data('name'),
+                            image: $(this).data('image'),
+                            price: $(this).data('price'),
+                            category: $(this).data('category'),
+                            description: $(this).data('description')
+                        };
+
+                        modalName.text(currentProductData.name);
+                        modalImage.attr('src', currentProductData.image);
+                        modalPrice.text(`$${currentProductData.price}`);
+                        modalDescription.text(currentProductData.description || 'No description available');
+                        productModal.show();
+                    }
+                });
+            });
+        }
+
+        function updatePaginationControls(current, total) {
+            currentPage = current;
+            $('#pageInfo').text(`Page ${current + 1} of ${total}`);
+            $('#prevPage').prop('disabled', current === 0);
+            $('#nextPage').prop('disabled', current >= total - 1);
+        }
+
+        $('#prevPage').click(() => {
+            if (currentPage > 0) {
+                fetchProducts($('#categoryFilter').val(), $('#searchInput').val(), currentPage - 1);
+            }
+        });
+
+        $('#nextPage').click(() => {
+            fetchProducts($('#categoryFilter').val(), $('#searchInput').val(), currentPage + 1);
+        });
+
+        window.editProduct = function(id, name, price, image, category, description) {
+            $('#editProductId').val(id);
+            $('#editProductName').val(name);
+            $('#editProductPrice').val(price);
+            $('#editProductImage').val(image);
+            $('#editProductCategory').val(category);
+            $('#editProductDescription').val(description);
+            $('#editImagePreview').attr('src', image || 'https://via.placeholder.com/300x200?text=Image+Preview');
+            editModal.show();
+        };
+
+        window.deleteProduct = function(id) {
+            if (confirm('Are you sure you want to delete this product?')) {
+                $.post('/admin/manageProduct', {
+                    actionType: 'delete',
+                    id: id
+                }).done(() => {
+                    fetchProducts();
+                    alert('Product deleted successfully!');
+                });
+            }
+        };
+
+        // Load categories
+        $.get('/api/products/categories', function (categories) {
+            const categoryFilter = $('#categoryFilter');
+            categories.forEach(function (category) {
+                categoryFilter.append(`<option value="${category}">${category}</option>`);
+            });
+        });
+
+        // Search and filter
+        $('#searchBtn').click(() => fetchProducts($('#categoryFilter').val(), $('#searchInput').val()));
+        $('#clearSearch').click(() => {
+            $('#searchInput').val('');
+            fetchProducts();
+        });
+        $('#categoryFilter').change(() => fetchProducts($('#categoryFilter').val(), $('#searchInput').val()));
+
+        // Modal action handlers
+        $('#modalEditBtn').click(() => {
+            productModal.hide();
+            editProduct(currentProductData.id, currentProductData.name, currentProductData.price, currentProductData.image, currentProductData.category, currentProductData.description);
+        });
+
+        $('#modalDeleteBtn').click(() => {
+            productModal.hide();
+            deleteProduct(currentProductData.id);
+        });
+
+        fetchProducts();
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,437 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+    line-height: 1.6;
+}
+
+
+
+/* Profile Wrapper */
+.profile-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: calc(100vh - 80px);
+    padding: 40px 20px;
+}
+
+/* Profile Container */
+.profile-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Profile Header */
+.profile-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-align: center;
+    padding: 40px 30px;
+    position: relative;
+}
+
+.profile-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+}
+
+.profile-avatar {
+    position: relative;
+    z-index: 2;
+    margin-bottom: 20px;
+}
+
+.profile-avatar i {
+    font-size: 80px;
+    color: rgba(255, 255, 255, 0.9);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.profile-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 2;
+}
+
+.profile-subtitle {
+    font-size: 16px;
+    opacity: 0.9;
+    font-weight: 400;
+    position: relative;
+    z-index: 2;
+}
+
+/* Profile Content */
+.profile-content {
+    padding: 40px 30px;
+}
+
+.profile-section {
+    margin-bottom: 40px;
+}
+
+.profile-section:last-child {
+    margin-bottom: 0;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.section-title i {
+    color: #667eea;
+    font-size: 18px;
+}
+
+/* Profile Grid */
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.profile-field {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: #f8f9ff;
+    border-radius: 12px;
+    border: 1px solid #e8ecff;
+    transition: all 0.3s ease;
+}
+
+.profile-field:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+    border-color: #667eea;
+}
+
+.field-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.field-icon i {
+    color: white;
+    font-size: 16px;
+}
+
+.field-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.field-content label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.field-value {
+    display: block;
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+    word-break: break-word;
+}
+
+.field-value:empty::after {
+    content: 'Not provided';
+    color: #999;
+    font-style: italic;
+}
+
+/* Security Field */
+.security-field {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: #fff5f5;
+    border-radius: 12px;
+    border: 1px solid #ffe0e0;
+}
+
+.password-mask {
+    font-family: monospace;
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: #666;
+}
+
+.btn-change-password {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.btn-change-password:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+}
+
+/* Profile Actions */
+.profile-actions {
+    padding: 30px;
+    background: #f8f9ff;
+    border-top: 1px solid #e8ecff;
+    text-align: center;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+}
+
+/* Modal Enhancements */
+.modal-content {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 16px 16px 0 0;
+    padding: 20px 30px;
+}
+
+.modal-title {
+    font-weight: 600;
+    font-size: 20px;
+}
+
+.modal-body {
+    padding: 30px;
+}
+
+.modal-body .mb-3 {
+    margin-bottom: 24px;
+}
+
+.modal-body label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.form-control {
+    border: 2px solid #e8ecff;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 15px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.modal-footer {
+    padding: 20px 30px;
+    border-top: 1px solid #e8ecff;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #51cf66, #40c057);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+/* Toast Enhancements */
+.toast {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .profile-wrapper {
+        padding: 20px 10px;
+    }
+    
+    .profile-container {
+        margin: 0;
+        border-radius: 16px;
+    }
+    
+    .profile-header {
+        padding: 30px 20px;
+    }
+    
+    .profile-title {
+        font-size: 24px;
+    }
+    
+    .profile-content {
+        padding: 30px 20px;
+    }
+    
+    .profile-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .profile-field {
+        padding: 16px;
+    }
+    
+    .security-field {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .btn-change-password {
+        align-self: flex-start;
+    }
+    
+    header nav {
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    header nav a {
+        font-size: 14px;
+        padding: 6px 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .profile-header {
+        padding: 20px 15px;
+    }
+    
+    .profile-avatar i {
+        font-size: 60px;
+    }
+    
+    .profile-title {
+        font-size: 20px;
+    }
+    
+    .profile-content {
+        padding: 20px 15px;
+    }
+    
+    .profile-actions {
+        padding: 20px 15px;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+}
+
+/* Loading Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.profile-container {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.profile-field {
+    animation: fadeInUp 0.6s ease-out;
+    animation-fill-mode: both;
+}
+
+.profile-field:nth-child(1) { animation-delay: 0.1s; }
+.profile-field:nth-child(2) { animation-delay: 0.2s; }
+.profile-field:nth-child(3) { animation-delay: 0.3s; }
+.profile-field:nth-child(4) { animation-delay: 0.4s; }
+.profile-field:nth-child(5) { animation-delay: 0.5s; }
+.profile-field:nth-child(6) { animation-delay: 0.6s; }

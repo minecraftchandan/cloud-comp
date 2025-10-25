@@ -1,0 +1,13 @@
+com\example\ecommerce\controller\ProductController.class
+com\example\ecommerce\controller\LoginController$1.class
+com\example\ecommerce\model\Product.class
+com\example\ecommerce\controller\AdminPanelController.class
+com\example\ecommerce\controller\LoginController.class
+com\example\ecommerce\service\FirestoreService.class
+com\example\ecommerce\config\FirebaseConfig.class
+com\example\ecommerce\controller\DashboardController.class
+com\example\ecommerce\config\AppConfig.class
+com\example\ecommerce\EcommerceApplication.class
+com\example\ecommerce\repository\ProductRepository.class
+com\example\ecommerce\controller\LoginController$2.class
+com\example\ecommerce\config\FirebaseProperties.class

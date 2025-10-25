@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="https://i.pinimg.com/736x/f2/b6/9c/f2b69c4361ecc3e3a6b672aaf2fee5f4.jpg">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Cart - NotShop</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/cart.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAf3vcMWpDbBWe5Xn_RMAonO53RHqZ15bQ",
+            authDomain: "profile-80e12.firebaseapp.com",
+            projectId: "profile-80e12",
+            storageBucket: "profile-80e12.appspot.com",
+            messagingSenderId: "975400278491",
+            appId: "1:975400278491:web:afec2dcca155409ca8effe",
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+    </script>
+</head>
+<body>
+    <header>
+        <a href="/home" class="home-icon">🏠</a>
+        <nav>
+            <a href="/products">Products</a>
+            <a href="/cart" class="active">Cart</a>
+            <a href="/orders">Orders</a>
+            <a href="/profile">Profile</a>
+            <a href="/admin" th:if="${session.username == 'admin'}">Admin Panel</a>
+            <a href="/Dashboard" th:if="${session.username == 'admin'}">Dashboard</a>
+            <a href="/logout">Logout</a>
+        </nav>
+        <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="mobile-nav-dropdown" id="mobileNavDropdown">
+            <a href="/products">Products</a>
+            <a href="/cart" class="active">Cart</a>
+            <a href="/orders">Orders</a>
+            <a href="/profile">Profile</a>
+            <a href="/admin" th:if="${session.username == 'admin'}">Admin Panel</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </header>
+
+    <div class="cart-container">
+        <!-- Cart Header -->
+        <div class="cart-header">
+            <h1><i class="fas fa-shopping-cart"></i> Your Shopping Cart</h1>
+            <p class="subtitle">Review your items and proceed to checkout</p>
+        </div>
+
+        <!-- Cart Content -->
+        <div class="cart-content">
+            <!-- Cart Items -->
+            <div class="cart-items">
+                <div id="cartItemsContainer">
+                    <!-- Items will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Cart Summary -->
+            <div class="cart-summary">
+                <h3 class="summary-title">Order Summary</h3>
+                <div id="summaryDetails">
+                    <!-- Summary will be loaded here -->
+                </div>
+                <div class="action-buttons">
+                    <a href="/payment/checkout" id="stripeCheckoutButton" class="btn btn-primary" style="display: none;">
+                        <i class="fas fa-credit-card"></i> Pay with Stripe
+                    </a>
+                    <button id="checkoutButton" class="btn btn-secondary" style="display: none;">
+                        <i class="fas fa-shopping-bag"></i> Quick Order
+                    </button>
+                    <button id="clearCartButton" class="btn btn-danger" style="display: none;">
+                        <i class="fas fa-trash"></i> Clear Cart
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+<script>
+    $(document).ready(function () {
+        function showToast(message, type = 'success') {
+            const toast = $('#toast');
+            toast.removeClass('success error').addClass(type).text(message).addClass('show');
+            setTimeout(() => {
+                toast.removeClass('show');
+            }, 3000);
+        }
+
+        $.get('/api/session', function (sessionData) {
+            if (!sessionData.loggedIn) {
+                showToast('Please login first.', 'error');
+                setTimeout(() => window.location.href = '/login', 1500);
+                return;
+            }
+
+            const username = sessionData.username;
+
+            function loadCart() {
+                const userDocRef = db.collection('users').doc(username);
+                const cartItemsContainer = $('#cartItemsContainer');
+                const summaryDetails = $('#summaryDetails');
+                const stripeCheckoutButton = $('#stripeCheckoutButton');
+                const checkoutButton = $('#checkoutButton');
+                const clearCartButton = $('#clearCartButton');
+
+                userDocRef.get().then(doc => {
+                    cartItemsContainer.empty();
+                    summaryDetails.empty();
+                    stripeCheckoutButton.hide();
+                    checkoutButton.hide();
+                    clearCartButton.hide();
+
+                    if (!doc.exists || !doc.data().carts || doc.data().carts.length === 0) {
+                        cartItemsContainer.html(`
+                            <div class="empty-cart">
+                                <i class="fas fa-shopping-cart"></i>
+                                <h3>Your cart is empty</h3>
+                                <p>Add some products to get started!</p>
+                                <a href="/products" class="btn btn-primary" style="margin-top: 20px;">
+                                    <i class="fas fa-shopping-bag"></i> Shop Now
+                                </a>
+                            </div>
+                        `);
+                        return;
+                    }
+
+                    const carts = doc.data().carts;
+                    let total = 0;
+                    let itemCount = 0;
+
+                    carts.forEach((item, index) => {
+                        const subtotal = item.price * item.quantity;
+                        total += subtotal;
+                        itemCount += item.quantity;
+
+                        const itemHtml = `
+                            <div class="cart-item" data-index="${index}">
+                                <img src="${item.image}" alt="${item.name}" class="item-image">
+                                <div class="item-details">
+                                    <div class="item-name">${item.name}</div>
+                                    <div class="item-price">$${item.price}</div>
+                                    <div class="quantity-controls">
+                                        <button class="qty-btn decrease-qty">-</button>
+                                        <span class="qty-display">${item.quantity}</span>
+                                        <button class="qty-btn increase-qty">+</button>
+                                    </div>
+                                </div>
+                                <button class="remove-btn remove-item">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                        cartItemsContainer.append(itemHtml);
+                    });
+
+                    const shipping = total > 50 ? 0 : 5.99;
+                    const tax = total * 0.08;
+                    const finalTotal = total + shipping + tax;
+
+                    summaryDetails.html(`
+                        <div class="summary-row">
+                            <span>Items (${itemCount})</span>
+                            <span>$${total.toFixed(2)}</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Shipping</span>
+                            <span>${shipping === 0 ? 'FREE' : '$' + shipping.toFixed(2)}</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Tax</span>
+                            <span>$${tax.toFixed(2)}</span>
+                        </div>
+                        <div class="summary-row summary-total">
+                            <span>Total</span>
+                            <span>$${finalTotal.toFixed(2)}</span>
+                        </div>
+                    `);
+                    
+                    stripeCheckoutButton.show();
+                    checkoutButton.show();
+                    clearCartButton.show();
+                }).catch(err => {
+                    console.error("Error loading cart:", err);
+                    showToast('Failed to load cart. Please try again.', 'error');
+                });
+            }
+
+            function updateQuantity(index, change) {
+                const userDocRef = db.collection('users').doc(username);
+
+                userDocRef.get().then(doc => {
+                    if (doc.exists) {
+                        const carts = doc.data().carts;
+                        carts[index].quantity += change;
+
+                        if (carts[index].quantity <= 0) {
+                            carts.splice(index, 1);
+                        }
+
+                        return userDocRef.set({ carts }, { merge: true });
+                    }
+                }).then(() => {
+                    showToast('Quantity updated!', 'success');
+                    loadCart();
+                });
+            }
+
+            function removeItem(index) {
+                const userDocRef = db.collection('users').doc(username);
+
+                userDocRef.get().then(doc => {
+                    if (doc.exists) {
+                        const carts = doc.data().carts;
+                        carts.splice(index, 1);
+                        return userDocRef.set({ carts }, { merge: true });
+                    }
+                }).then(() => {
+                    showToast('Item removed from cart!', 'success');
+                    loadCart();
+                });
+            }
+
+            function checkout() {
+                const userDocRef = db.collection('users').doc(username);
+
+                userDocRef.get().then(doc => {
+                    if (!doc.exists || !doc.data().carts || doc.data().carts.length === 0) {
+                        showToast('Your cart is empty!', 'error');
+                        return;
+                    }
+
+                    const currentCart = doc.data().carts;
+                    const orderData = {
+                        userId: username,
+                        items: currentCart,
+                        orderDate: new Date(),
+                        status: 'pending',
+                        total: currentCart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                    };
+
+                    // Create order in orders collection
+                    return db.collection('orders').add(orderData)
+                        .then(() => {
+                            // Clear user's cart
+                            return userDocRef.set({ carts: [] }, { merge: true });
+                        });
+                }).then(() => {
+                    showToast('🎉 Order placed successfully!', 'success');
+                    loadCart();
+                }).catch(error => {
+                    console.error("Checkout error:", error);
+                    showToast('❌ Failed to complete checkout.', 'error');
+                });
+            }
+            
+            function clearCart() {
+                const userDocRef = db.collection('users').doc(username);
+
+                userDocRef.get().then(doc => {
+                    if (!doc.exists || !doc.data().carts || doc.data().carts.length === 0) {
+                        showToast('Your cart is already empty!', 'error');
+                        return;
+                    }
+
+                    const currentCart = doc.data().carts;
+                    const orderData = {
+                        userId: username,
+                        items: currentCart,
+                        orderDate: new Date(),
+                        status: 'cleared',
+                        total: currentCart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                    };
+
+                    // Create order in orders collection
+                    return db.collection('orders').add(orderData)
+                        .then(() => {
+                            // Clear user's cart
+                            return userDocRef.set({ carts: [] }, { merge: true });
+                        });
+                }).then(() => {
+                    showToast('🗑️ Cart cleared and saved to orders!', 'success');
+                    loadCart();
+                }).catch(error => {
+                    console.error("Clear cart error:", error);
+                    showToast('❌ Failed to clear cart.', 'error');
+                });
+            }
+
+            $(document).on('click', '.increase-qty', function () {
+                const index = $(this).closest('.cart-item').data('index');
+                updateQuantity(index, 1);
+            });
+
+            $(document).on('click', '.decrease-qty', function () {
+                const index = $(this).closest('.cart-item').data('index');
+                updateQuantity(index, -1);
+            });
+
+            $(document).on('click', '.remove-item', function () {
+                const index = $(this).closest('.cart-item').data('index');
+                removeItem(index);
+            });
+
+            $('#checkoutButton').click(function () {
+                if (confirm("Are you sure you want to place this order?")) {
+                    checkout();
+                }
+            });
+            
+            $('#clearCartButton').click(function () {
+                if (confirm("Are you sure you want to clear your cart? Items will be saved to your orders.")) {
+                    clearCart();
+                }
+            });
+
+            loadCart();
+        });
+    });
+    
+    function toggleMobileMenu() {
+        const dropdown = document.getElementById('mobileNavDropdown');
+        dropdown.classList.toggle('show');
+    }
+    
+    document.addEventListener('click', function(event) {
+        const dropdown = document.getElementById('mobileNavDropdown');
+        const toggle = document.querySelector('.mobile-menu-toggle');
+        
+        if (!dropdown.contains(event.target) && !toggle.contains(event.target)) {
+            dropdown.classList.remove('show');
+        }
+    });
+</script>
+</body>
+</html>

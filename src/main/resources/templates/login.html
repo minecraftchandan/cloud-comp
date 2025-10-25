@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login Page</title>
+  <link rel="icon" type="image/png" href="https://i.pinimg.com/736x/f2/b6/9c/f2b69c4361ecc3e3a6b672aaf2fee5f4.jpg">
+  <link rel="stylesheet" href="/css/login.css" />
+ 
+  <style>
+    #popupMessage {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #4caf50;
+      color: white;
+      padding: 20px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      font-size: 1.1em;
+      text-align: center;
+      z-index: 9999;
+      display: none;
+      opacity: 10;
+      transition: opacity 0.5s ease;
+    }
+
+    .input-error {
+      border: 2px solid red !important;
+    }
+
+    .field-error {
+      font-size: 0.85em;
+      color: red;
+      margin-top: -8px;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    .success-message {
+      color: green;
+    }
+
+    .error-message {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+<div class="container" id="container">
+  <p th:if="${error}" th:text="${error}" id="spring-error" class="error-message"></p>
+  <p id="message" class="error-message" style="display:none;"></p>
+  <div id="popupMessage"></div>
+
+  <!-- Sign Up Form -->
+  <div class="form-container sign-up" id="signUpForm">
+    <form id="registerForm" novalidate>
+      <h1>Create Account</h1>
+      <input type="text" name="username" placeholder="Username" required />
+      <div class="field-error" id="error-username"></div>
+
+      <input type="password" name="password" placeholder="Password" required />
+      <div class="field-error" id="error-password"></div>
+
+      <input type="password" name="confirmPassword" placeholder="Confirm Password" required />
+      <div class="field-error" id="error-confirm"></div>
+
+      <a href="#" id="goLogin">Already have an account? <span class="link-button">Sign in</span></a>
+      <button type="submit">Sign Up</button>
+    </form>
+  </div>
+
+  <!-- Sign In Form -->
+  <div class="form-container sign-in active" id="signInForm">
+    <form id="auth-form" method="post" action="/login">
+      <h1>Sign In</h1>
+      <input type="text" name="username" placeholder="Username" required autocomplete="username" />
+      <input type="password" name="password" placeholder="Password" required autocomplete="current-password" />
+      <a href="#" id="goRegister">Don't have an account? <span class="link-button" style="color: blue;">Sign up</span></a>
+      <button type="submit">Sign In</button>
+    </form>
+  </div>
+
+  <div class="form-placeholder" id="formPlaceholder"></div>
+
+  <div class="toggle-container">
+    <div class="toggle">
+      <div class="toggle-panel toggle-left"></div>
+      <div class="toggle-panel toggle-right"></div>
+    </div>
+  </div>
+</div>
+<script src="/js/login.js"></script>
+</body>
+</html>

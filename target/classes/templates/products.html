@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="https://i.pinimg.com/736x/f2/b6/9c/f2b69c4361ecc3e3a6b672aaf2fee5f4.jpg">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/products.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAf3vcMWpDbBWe5Xn_RMAonO53RHqZ15bQ",
+            authDomain: "profile-80e12.firebaseapp.com",
+            projectId: "profile-80e12",
+            storageBucket: "profile-80e12.appspot.com",
+            messagingSenderId: "975400278491",
+            appId: "1:975400278491:web:afec2dcca155409ca8effe",
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+    </script>
+</head>
+<body>
+<header>
+    <a href="/home" class="home-icon">🏠</a>
+    <nav>
+        <a href="/products" class="active">Products</a>
+        <a href="/cart">Cart</a>
+        <a href="/orders">Orders</a>
+        <a href="/profile">Profile</a>
+   <a href="/admin/products" th:if="${session.username == 'admin'}">Manage Products</a>
+            <a href="/admin/orders" th:if="${session.username == 'admin'}">Manage Orders</a>
+            <a href="/admin" th:if="${session.username == 'admin'}">Admin Panel</a>
+            <a href="/Dashboard" th:if="${session.username == 'admin'}">Dashboard</a>
+        <a href="/logout">Logout</a>
+    </nav>
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+        <i class="fas fa-bars"></i>
+    </button>
+    <div class="mobile-nav-dropdown" id="mobileNavDropdown">
+        <a href="/products" class="active">Products</a>
+        <a href="/cart">Cart</a>
+        <a href="/orders">Orders</a>
+        <a href="/profile">Profile</a>
+        <a href="/admin/products" th:if="${session.username == 'admin'}">Manage Products</a>
+            <a href="/admin/orders" th:if="${session.username == 'admin'}">Manage Orders</a>
+            <a href="/admin" th:if="${session.username == 'admin'}">Admin Panel</a>
+            <a href="/Dashboard" th:if="${session.username == 'admin'}">Dashboard</a>
+        <a href="/logout">Logout</a>
+    </div>
+</header>
+
+<!-- Search and Filter Section -->
+<div class="search-filter-container">
+    <div class="search-section">
+        <input type="text" id="searchInput" placeholder="Search products..." />
+        <button id="searchBtn">Search</button>
+        <button id="clearSearch">Clear</button>
+    </div>
+    <div class="filter-section">
+        <label for="categoryFilter">Filter by Category:</label>
+        <select id="categoryFilter">
+            <option value="">All Categories</option>
+        </select>
+    </div>
+</div>
+
+<!-- Products Section -->
+<h1>Products</h1>
+<div id="productsContainer"></div>
+
+<!-- Pagination Controls -->
+<div id="paginationContainer" style="text-align: center; margin: 20px 0;">
+    <button id="prevPage" disabled>Previous</button>
+    <span id="pageInfo"></span>
+    <button id="nextPage" disabled>Next</button>
+</div>
+
+<!-- Modal -->
+<div id="productModal" class="modal">
+    <div class="modal-content modal-large">
+        <span class="close">&times;</span>
+        <div class="modal-body">
+            <div class="modal-left">
+                <img id="modalProductImage" src="" alt="">
+            </div>
+            <div class="modal-right">
+                <h3 id="modalProductName"></h3>
+                <p id="modalProductDescription"></p>
+                <p id="modalProductPrice"></p>
+                <button id="modalAddToCart">Add to Cart</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        const modal = $('#productModal');
+        const modalName = $('#modalProductName');
+        const modalImage = $('#modalProductImage');
+        const modalPrice = $('#modalProductPrice');
+        const modalDescription = $('#modalProductDescription');
+        let modalProductData = {};
+
+        $('.close').click(function() {
+            modal.hide();
+        });
+
+        $(window).click(function(event) {
+            if (event.target === modal[0]) {
+                modal.hide();
+            }
+        });
+
+        $.get('/api/session', function (sessionData) {
+            if (!sessionData.loggedIn) {
+                alert('Please login first.');
+                window.location.href = '/login';
+                return;
+            }
+
+            const username = sessionData.username;
+            const role = sessionData.role;
+
+            $.get('/api/products/categories', function (categories) {
+                const categoryFilter = $('#categoryFilter');
+                categories.forEach(function (category) {
+                    categoryFilter.append(`<option value="${category}">${category}</option>`);
+                });
+            });
+
+            let currentPage = 0;
+            const pageSize = 20;
+            let currentSearch = '';
+
+            function fetchProducts(category = '', search = '', page = 0) {
+                const params = { page: page, size: pageSize };
+                if (category) params.category = category;
+                if (search) params.search = search;
+                
+                $.get('/api/products', params, function (data) {
+                    const productsContainer = $('#productsContainer');
+                    productsContainer.empty();
+
+                    if (data.products.length === 0) {
+                        productsContainer.html('<p>No products available.</p>');
+                        $('#paginationContainer').hide();
+                        return;
+                    }
+
+                    $('#paginationContainer').show();
+                    updatePaginationControls(data.currentPage, data.totalPages);
+
+                    data.products.forEach(function (product) {
+                        let productElement = `
+                            <div class="product-card" 
+                                data-id="${product.id}"
+                                data-name="${product.name}"
+                                data-image="${product.pictureUrl}"
+                                data-price="${product.price}"
+                                data-description="${product.description || ''}">
+                                <div class="product-image-container">
+                                    <img src="${product.pictureUrl}" alt="${product.name}">
+                                </div>
+                                <div class="product-info">
+                                    <h3 class="product-name">${product.name.length > 20 ? product.name.substring(0, 20) + '...' : product.name}</h3>
+                                    <div class="product-price">$${product.price}</div>
+                                    ${role === 'ADMIN' ? `<div style="font-size: 12px; color: #999; margin-bottom: 10px;">ID: ${product.id}</div>` : ''}
+                                    <button class="add-to-cart-btn" data-id="${product.id}" data-name="${product.name}" data-image="${product.pictureUrl}" data-price="${product.price}">
+                                        <i class="fas fa-shopping-cart"></i>Add to Cart
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        productsContainer.append(productElement);
+                    });
+
+                    $('.product-card').click(function (e) {
+                        if (!$(e.target).hasClass('add-to-cart-btn')) {
+                            modalProductData = {
+                                id: $(this).data('id'),
+                                name: $(this).data('name'),
+                                image: $(this).data('image'),
+                                price: $(this).data('price'),
+                                description: $(this).data('description'),
+                                quantity: 1,
+                                addedAt: new Date()
+                            };
+
+                            modalName.text(modalProductData.name);
+                            modalImage.attr('src', modalProductData.image);
+                            modalPrice.text(`$${modalProductData.price}`);
+                            modalDescription.text(modalProductData.description || 'No description available');
+                            modal.show();
+                        }
+                    });
+
+                    $('.add-to-cart-btn').click(function (e) {
+                        e.stopPropagation();
+                        const productData = {
+                            id: $(this).data('id'),
+                            name: $(this).data('name'),
+                            image: $(this).data('image'),
+                            price: $(this).data('price'),
+                            quantity: 1,
+                            addedAt: new Date()
+                        };
+
+                        addToCart(productData);
+                    });
+
+                    function addToCart(productData) {
+                        const userDocRef = db.collection('users').doc(username);
+
+                        userDocRef.get().then((doc) => {
+                            let carts = [];
+                            if (doc.exists) {
+                                const data = doc.data();
+                                carts = data.carts || [];
+                                const index = carts.findIndex(item => item.id === productData.id);
+                                if (index >= 0) {
+                                    carts[index].quantity += 1;
+                                } else {
+                                    carts.push(productData);
+                                }
+                            } else {
+                                carts.push(productData);
+                            }
+
+                            return userDocRef.set({ carts: carts }, { merge: true });
+                        }).then(() => {
+                            $('<div class="notification">')
+                                .text(`${productData.name} added to cart!`)
+                                .appendTo('body')
+                                .fadeIn(300)
+                                .delay(2000)
+                                .fadeOut(300, function () {
+                                    $(this).remove();
+                                });
+                        }).catch((error) => {
+                            console.error("Error adding to cart:", error);
+                            alert("Failed to add to cart.");
+                        });
+                    }
+
+                    $('#modalAddToCart').off('click').on('click', function () {
+                        addToCart(modalProductData);
+                        modal.hide();
+                    });
+                }).fail(function (error) {
+                    console.error('Error fetching products:', error);
+                    $('#productsContainer').html('<p>Failed to load products.</p>');
+                });
+            }
+
+            function updatePaginationControls(current, total) {
+                currentPage = current;
+                $('#pageInfo').text(`Page ${current + 1} of ${total}`);
+                $('#prevPage').prop('disabled', current === 0);
+                $('#nextPage').prop('disabled', current === total - 1);
+            }
+
+            fetchProducts();
+
+            function performSearch() {
+                currentPage = 0;
+                currentSearch = $('#searchInput').val().trim();
+                fetchProducts($('#categoryFilter').val(), currentSearch, currentPage);
+            }
+
+            $('#searchBtn').click(performSearch);
+            
+            $('#searchInput').keypress(function(e) {
+                if (e.which === 13) {
+                    performSearch();
+                }
+            });
+            
+            $('#clearSearch').click(function() {
+                $('#searchInput').val('');
+                currentSearch = '';
+                currentPage = 0;
+                fetchProducts($('#categoryFilter').val(), '', currentPage);
+            });
+
+            $('#categoryFilter').change(function () {
+                currentPage = 0;
+                fetchProducts($(this).val(), currentSearch, currentPage);
+            });
+
+            $('#prevPage').click(function () {
+                if (currentPage > 0) {
+                    fetchProducts($('#categoryFilter').val(), currentSearch, currentPage - 1);
+                }
+            });
+
+            $('#nextPage').click(function () {
+                fetchProducts($('#categoryFilter').val(), currentSearch, currentPage + 1);
+            });
+        });
+    });
+    
+    function toggleMobileMenu() {
+        const dropdown = document.getElementById('mobileNavDropdown');
+        dropdown.classList.toggle('show');
+    }
+    
+    document.addEventListener('click', function(event) {
+        const dropdown = document.getElementById('mobileNavDropdown');
+        const toggle = document.querySelector('.mobile-menu-toggle');
+        
+        if (!dropdown.contains(event.target) && !toggle.contains(event.target)) {
+            dropdown.classList.remove('show');
+        }
+    });
+</script>
+</body>
+</html>

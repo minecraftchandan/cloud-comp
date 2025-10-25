@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <link rel="icon" type="image/png" href="https://i.pinimg.com/736x/f2/b6/9c/f2b69c4361ecc3e3a6b672aaf2fee5f4.jpg">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - NotShop</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .checkout-container {
+            max-width: 800px;
+            margin: 100px auto 50px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .checkout-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .checkout-header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+
+        .checkout-content {
+            padding: 40px;
+        }
+
+        .order-summary {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .summary-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #667eea;
+        }
+
+        .checkout-button {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .checkout-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .checkout-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .back-to-cart {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .back-to-cart:hover {
+            color: #764ba2;
+        }
+
+        .security-info {
+            background: #e8f5e8;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .security-info i {
+            color: #28a745;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="/home" class="home-icon">🏠</a>
+        <nav>
+            <a href="/products">Products</a>
+            <a href="/cart">Cart</a>
+            <a href="/orders">Orders</a>
+            <a href="/profile">Profile</a>
+            <a href="/logout">Logout</a>
+        </nav>
+    </header>
+
+    <div class="checkout-container">
+        <div class="checkout-header">
+            <h1><i class="fas fa-credit-card"></i> Secure Checkout</h1>
+            <p>Complete your purchase securely with Stripe</p>
+        </div>
+
+        <div class="checkout-content">
+            <a href="/cart" class="back-to-cart">
+                <i class="fas fa-arrow-left"></i> Back to Cart
+            </a>
+
+            <div class="order-summary">
+                <h3 class="summary-title">Order Summary</h3>
+                <div id="orderSummary">
+                    <!-- Order details will be loaded here -->
+                </div>
+            </div>
+
+            <div class="loading" id="loadingDiv">
+                <div class="spinner"></div>
+                <p>Processing your payment...</p>
+            </div>
+
+            <button id="checkout-button" class="checkout-button">
+                <i class="fas fa-lock"></i> Pay Securely with Stripe
+            </button>
+
+            <div class="security-info">
+                <i class="fas fa-shield-alt"></i>
+                <strong>Secure Payment:</strong> Your payment information is encrypted and processed securely by Stripe.
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAf3vcMWpDbBWe5Xn_RMAonO53RHqZ15bQ",
+            authDomain: "profile-80e12.firebaseapp.com",
+            projectId: "profile-80e12",
+            storageBucket: "profile-80e12.appspot.com",
+            messagingSenderId: "975400278491",
+            appId: "1:975400278491:web:afec2dcca155409ca8effe",
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Initialize Stripe
+        const stripe = Stripe('[[${stripePublishableKey}]]');
+        const checkoutButton = document.getElementById('checkout-button');
+        const loadingDiv = document.getElementById('loadingDiv');
+
+        // Load order summary
+        $(document).ready(function() {
+            loadOrderSummary();
+        });
+
+        function loadOrderSummary() {
+            $.get('/api/session', function(sessionData) {
+                if (!sessionData.loggedIn) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const username = sessionData.username;
+                const userDocRef = db.collection('users').doc(username);
+
+                userDocRef.get().then(doc => {
+                    if (!doc.exists || !doc.data().carts || doc.data().carts.length === 0) {
+                        $('#orderSummary').html('<p>Your cart is empty. <a href="/products">Continue shopping</a></p>');
+                        checkoutButton.disabled = true;
+                        return;
+                    }
+
+                    const carts = doc.data().carts;
+                    let subtotal = 0;
+                    let itemCount = 0;
+
+                    carts.forEach(item => {
+                        subtotal += item.price * item.quantity;
+                        itemCount += item.quantity;
+                    });
+
+                    const shipping = subtotal > 50 ? 0 : 5.99;
+                    const tax = subtotal * 0.08;
+                    const total = subtotal + shipping + tax;
+
+                    $('#orderSummary').html(`
+                        <div class="summary-item">
+                            <span>Items (${itemCount})</span>
+                            <span>$${subtotal.toFixed(2)}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Shipping</span>
+                            <span>${shipping === 0 ? 'FREE' : '$' + shipping.toFixed(2)}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Tax</span>
+                            <span>$${tax.toFixed(2)}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Total</span>
+                            <span>$${total.toFixed(2)}</span>
+                        </div>
+                    `);
+                });
+            });
+        }
+
+        checkoutButton.addEventListener('click', function() {
+            checkoutButton.disabled = true;
+            loadingDiv.style.display = 'block';
+
+            fetch('/payment/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                return stripe.redirectToCheckout({ sessionId: data.sessionId });
+            })
+            .then(result => {
+                if (result.error) {
+                    throw new Error(result.error.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+                checkoutButton.disabled = false;
+                loadingDiv.style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>

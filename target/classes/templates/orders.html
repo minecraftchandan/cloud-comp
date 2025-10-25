@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="https://i.pinimg.com/736x/f2/b6/9c/f2b69c4361ecc3e3a6b672aaf2fee5f4.jpg">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Your Orders - NotShop</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/orders.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAf3vcMWpDbBWe5Xn_RMAonO53RHqZ15bQ",
+            authDomain: "profile-80e12.firebaseapp.com",
+            projectId: "profile-80e12",
+            storageBucket: "profile-80e12.appspot.com",
+            messagingSenderId: "975400278491",
+            appId: "1:975400278491:web:afec2dcca155409ca8effe",
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        $(document).ready(function () {
+            $.get('/api/session', function (sessionData) {
+                if (!sessionData.loggedIn) {
+                    alert("Please login first.");
+                    window.location.href = "/login";
+                    return;
+                }
+
+                const username = sessionData.username;
+                const ordersContainer = $('#ordersContainer');
+                const clearOrdersButton = $('#clearOrdersButton');
+                const grandTotalElement = $('#grandTotal');
+
+                function loadOrders() {
+                    ordersContainer.empty();
+                    grandTotalElement.text('');
+
+                    console.log('Querying orders for username:', username);
+                    db.collection('orders').where('userId', '==', username).get().then(querySnapshot => {
+                        console.log('Query result size:', querySnapshot.size);
+                        if (querySnapshot.empty) {
+                            console.log('No orders found for user:', username);
+                            ordersContainer.html(`
+                                <div class="empty-orders">
+                                    <i class="fas fa-shopping-bag"></i>
+                                    <h3>No Orders Yet</h3>
+                                    <p>You haven't placed any orders yet. Start shopping to see your orders here!</p>
+                                    <a href="/products" class="shop-now-btn">
+                                        <i class="fas fa-shopping-cart"></i>
+                                        Start Shopping
+                                    </a>
+                                </div>
+                            `);
+                            clearOrdersButton.hide();
+                            return;
+                        }
+
+                        let grandTotal = 0;
+                        let orderIndex = 0;
+
+                        querySnapshot.forEach(doc => {
+                            const order = doc.data();
+                            let totalAmount = order.total || 0;
+                            grandTotal += totalAmount;
+
+                            let orderDate;
+                            if (order.orderDate && order.orderDate.toDate) {
+                                orderDate = order.orderDate.toDate().toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                });
+                            } else if (order.orderDate) {
+                                orderDate = new Date(order.orderDate).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                });
+                            } else {
+                                orderDate = 'Unknown Date';
+                            }
+
+                            const statusBadge = order.status === 'pending' ? 
+                                '<span class="status-badge pending"><i class="fas fa-clock"></i> Pending</span>' :
+                                '<span class="status-badge cleared"><i class="fas fa-trash"></i> Cleared</span>';
+
+                            const orderDiv = $(`
+                                <div class="order">
+                                    <div class="order-header">
+                                        <div class="order-date">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            Order placed on ${orderDate}
+                                        </div>
+                                        <div class="order-status">
+                                            ${statusBadge}
+                                        </div>
+                                        <div class="order-total">
+                                            <i class="fas fa-dollar-sign"></i>
+                                            $${totalAmount.toFixed(2)}
+                                        </div>
+                                    </div>
+                                    <div class="order-items" id="order-items-${orderIndex}"></div>
+                                </div>
+                            `);
+                            ordersContainer.append(orderDiv);
+
+                            const orderItemsContainer = $(`#order-items-${orderIndex}`);
+                            order.items.forEach(product => {
+                                const itemHtml = `
+                                    <div class="order-item">
+                                        <img src="${product.image}" alt="${product.name}" />
+                                        <div class="item-details">
+                                            <h3>${product.name}</h3>
+                                            <div class="item-info">
+                                                <p class="item-price">
+                                                    <i class="fas fa-tag"></i>
+                                                    $${product.price}
+                                                </p>
+                                                <p>
+                                                    <i class="fas fa-cubes"></i>
+                                                    Qty: ${product.quantity}
+                                                </p>
+                                                <p class="item-total">
+                                                    <i class="fas fa-calculator"></i>
+                                                    Total: $${(product.price * product.quantity).toFixed(2)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                                orderItemsContainer.append(itemHtml);
+                            });
+                            orderIndex++;
+                        });
+
+                        grandTotalElement.html(`
+                            <i class="fas fa-chart-line"></i>
+                            Grand Total of All Orders: $${grandTotal.toFixed(2)}
+                        `);
+                        clearOrdersButton.show();
+                    }).catch(error => {
+                        console.error("Error loading orders:", error);
+                        ordersContainer.html(`
+                            <div class="empty-orders">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <h3>Error Loading Orders</h3>
+                                <p>Failed to load orders. Please try again later.</p>
+                                <button onclick="location.reload()" class="shop-now-btn">
+                                    <i class="fas fa-refresh"></i>
+                                    Retry
+                                </button>
+                            </div>
+                        `);
+                    });
+                }
+
+                $('#clearOrdersButton').click(function () {
+                    if (confirm("Are you sure you want to clear all orders? This action cannot be undone.")) {
+                        db.collection('orders').where('userId', '==', username).get()
+                            .then(querySnapshot => {
+                                const batch = db.batch();
+                                querySnapshot.forEach(doc => {
+                                    batch.delete(doc.ref);
+                                });
+                                return batch.commit();
+                            })
+                            .then(() => {
+                                loadOrders();
+                                // Show success message
+                                $('body').append(`
+                                    <div style="position: fixed; top: 20px; right: 20px; background: #2ecc71; color: white; padding: 15px 25px; border-radius: 10px; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                                        <i class="fas fa-check-circle"></i> Orders cleared successfully!
+                                    </div>
+                                `);
+                                setTimeout(() => {
+                                    $('body > div:last-child').fadeOut(500, function() {
+                                        $(this).remove();
+                                    });
+                                }, 3000);
+                            })
+                            .catch(error => {
+                                console.error("Error clearing orders:", error);
+                                alert("Failed to clear orders. Please try again.");
+                            });
+                    }
+                });
+
+                loadOrders();
+            });
+        });
+        
+        function toggleMobileMenu() {
+            const dropdown = document.getElementById('mobileNavDropdown');
+            dropdown.classList.toggle('show');
+        }
+        
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('mobileNavDropdown');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            
+            if (!dropdown.contains(event.target) && !toggle.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+    </script>
+</head>
+<body>
+    <header>
+        <a href="/home" class="home-icon">🏠</a>
+        <nav>
+            <a href="/products">Products</a>
+            <a href="/cart">Cart</a>
+            <a href="/orders" class="active">Orders</a>
+            <a href="/profile">Profile</a>
+            <a href="/admin" th:if="${session.username == 'admin'}">Admin Panel</a>
+            <a href="/Dashboard" th:if="${session.username == 'admin'}">Dashboard</a>
+            <a href="/logout">Logout</a>
+        </nav>
+        <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="mobile-nav-dropdown" id="mobileNavDropdown">
+            <a href="/products">Products</a>
+            <a href="/cart">Cart</a>
+            <a href="/orders" class="active">Orders</a>
+            <a href="/profile">Profile</a>
+            <a href="/admin" th:if="${session.username == 'admin'}">Admin Panel</a>
+            <a href="/Dashboard" th:if="${session.username == 'admin'}">Dashboard</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </header>
+
+    <div class="orders-wrapper">
+        <!-- Orders Header -->
+        <div class="orders-header">
+            <h1>
+                <i class="fas fa-shopping-bag"></i>
+                Your Order History
+            </h1>
+            <p class="subtitle">Track and manage all your previous orders</p>
+        </div>
+
+        <!-- Orders Container -->
+        <div id="ordersContainer">
+            <!-- Orders will be loaded here -->
+        </div>
+
+        <!-- Grand Total Section -->
+        <div class="grand-total-section">
+            <h2 id="grandTotal"></h2>
+        </div>
+
+        <!-- Clear Orders Button -->
+        <div class="clear-orders-section">
+            <button id="clearOrdersButton" style="display: none;">
+                <i class="fas fa-trash-alt"></i>
+                Clear All Orders
+            </button>
+        </div>
+    </div>
+</body>
+</html>

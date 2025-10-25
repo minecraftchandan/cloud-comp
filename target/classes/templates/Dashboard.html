@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <link rel="icon" type="image/png" href="https://i.pinimg.com/736x/f2/b6/9c/f2b69c4361ecc3e3a6b672aaf2fee5f4.jpg">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - NotShop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/dashboard.css">   
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+</head>
+<body>
+    <!-- Header with Navigation -->
+    <header>
+        <a href="/home" class="home-icon">🏠</a>
+        <nav>
+            <a href="/products">Products</a>
+            <a href="/admin/products" th:if="${session.username == 'admin'}">Manage Products</a>
+            <a href="/admin/orders" th:if="${session.username == 'admin'}">Manage Orders</a>
+            <a href="/Dashboard" th:if="${session.username == 'admin'}">Dashboard</a>
+            <a href="/logout">Logout</a>
+        </nav>
+    </header>
+
+    <div class="dashboard-container">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <h1 class="welcome-title">Welcome back, <span th:text="${session.username}">User</span>! 👋</h1>
+            <p class="welcome-subtitle">Here's what's happening with your store today.</p>
+        </div>
+
+        <!-- Main Dashboard Grid -->
+        <div class="main-dashboard-grid">
+            <!-- Left Column - Recent Activity -->
+            <div class="left-column">
+                <div class="activity-section">
+                    <h2 class="section-title">Recent Activity</h2>
+                    <div id="activityList">
+                        <!-- Activities will be loaded here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column - Stats -->
+            <div class="right-column">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon orders">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="stat-value" id="totalOrders">0</div>
+                        <div class="stat-label">Total Orders</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon revenue">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-value" id="totalRevenue">$0</div>
+                        <div class="stat-label">Total Revenue</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon products">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="stat-value" id="totalProducts">0</div>
+                        <div class="stat-label">Products</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon customers">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-value" id="totalCustomers">0</div>
+                        <div class="stat-label">Customers</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Featured Products -->
+        <div class="products-section">
+            <h2 class="section-title">Featured Products</h2>
+            <div class="products-grid" id="productsGrid">
+                <!-- Products will be loaded here -->
+            </div>
+            <div class="quick-actions">
+                <a href="/products" class="action-btn">
+                    <i class="fas fa-eye"></i>
+                    View All Products
+                </a>
+                <a href="/cart" class="action-btn">
+                    <i class="fas fa-shopping-cart"></i>
+                    View Cart
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load dashboard data
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardStats();
+            loadFeaturedProducts();
+            loadRecentActivity();
+        });
+
+        // Load dashboard statistics
+        function loadDashboardStats() {
+            // Load products data
+            fetch('/api/products')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('totalProducts').textContent = data.totalElements || 0;
+                    
+                    // Calculate total revenue (mock calculation)
+                    const revenue = data.products ? data.products.reduce((sum, product) => sum + (product.price * 10), 0) : 0;
+                    document.getElementById('totalRevenue').textContent = '$' + revenue.toLocaleString();
+                    
+                    // Load real orders count from Firestore
+                    loadOrdersCount();
+                })
+                .catch(error => console.error('Error loading stats:', error));
+            
+            // Load customer count from Firestore
+            loadCustomerCount();
+        }
+        
+        // Load orders count from Firestore orders collection
+        function loadOrdersCount() {
+            const firebaseConfig = {
+                apiKey: "AIzaSyAf3vcMWpDbBWe5Xn_RMAonO53RHqZ15bQ",
+                authDomain: "profile-80e12.firebaseapp.com",
+                projectId: "profile-80e12",
+                storageBucket: "profile-80e12.appspot.com",
+                messagingSenderId: "975400278491",
+                appId: "1:975400278491:web:afec2dcca155409ca8effe"
+            };
+            
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            const db = firebase.firestore();
+            
+            // Count documents in orders collection
+            db.collection('orders').get()
+                .then(snapshot => {
+                    const ordersCount = snapshot.size;
+                    document.getElementById('totalOrders').textContent = ordersCount;
+                })
+                .catch(error => {
+                    console.error('Error loading orders count:', error);
+                    document.getElementById('totalOrders').textContent = '0';
+                });
+        }
+        
+        // Load recent activity from Firestore
+        function loadRecentActivity() {
+            const firebaseConfig = {
+                apiKey: "AIzaSyAf3vcMWpDbBWe5Xn_RMAonO53RHqZ15bQ",
+                authDomain: "profile-80e12.firebaseapp.com",
+                projectId: "profile-80e12",
+                storageBucket: "profile-80e12.appspot.com",
+                messagingSenderId: "975400278491",
+                appId: "1:975400278491:web:afec2dcca155409ca8effe"
+            };
+            
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            const db = firebase.firestore();
+            
+            const activities = [];
+            
+            // Get recent orders activities
+            db.collection('orders').orderBy('orderDate', 'desc').limit(3).get()
+                .then(snapshot => {
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.orderDate) {
+                            let timeValue;
+                            if (data.orderDate.toDate) {
+                                timeValue = data.orderDate.toDate();
+                            } else if (data.orderDate instanceof Date) {
+                                timeValue = data.orderDate;
+                            } else {
+                                timeValue = new Date(data.orderDate);
+                            }
+                            
+                            activities.push({
+                                type: 'order',
+                                time: timeValue,
+                                title: data.status === 'cleared' ? 'Cart cleared' : 'New order placed'
+                            });
+                        }
+                    });
+                    
+                    // Get recent user registrations
+                    return db.collection('users').limit(3).get();
+                })
+                .then(snapshot => {
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.createdAt) {
+                            let timeValue;
+                            if (data.createdAt.toDate) {
+                                timeValue = data.createdAt.toDate();
+                            } else if (data.createdAt instanceof Date) {
+                                timeValue = data.createdAt;
+                            } else {
+                                timeValue = new Date(data.createdAt);
+                            }
+                            
+                            activities.push({
+                                type: 'user',
+                                time: timeValue,
+                                title: 'New user joined'
+                            });
+                        }
+                    });
+                    
+                    // Sort by time and display
+                    activities.sort((a, b) => b.time - a.time);
+                    displayActivities(activities.slice(0, 3));
+                })
+                .catch(error => {
+                    console.error('Error loading activities:', error);
+                    displayDefaultActivities();
+                });
+        }
+        
+        function displayActivities(activities) {
+            const activityList = document.getElementById('activityList');
+            activityList.innerHTML = '';
+            
+            if (activities.length === 0) {
+                displayDefaultActivities();
+                return;
+            }
+            
+            activities.forEach(activity => {
+                const timeAgo = getTimeAgo(activity.time);
+                let icon;
+                if (activity.type === 'order') {
+                    icon = 'fas fa-shopping-bag';
+                } else if (activity.type === 'user') {
+                    icon = 'fas fa-user-plus';
+                } else {
+                    icon = 'fas fa-shopping-cart';
+                }
+                
+                const activityItem = `
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="${icon}"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">${activity.title}</div>
+                            <div class="activity-time">${timeAgo}</div>
+                        </div>
+                    </div>
+                `;
+                activityList.innerHTML += activityItem;
+            });
+        }
+        
+        function displayDefaultActivities() {
+            const activityList = document.getElementById('activityList');
+            activityList.innerHTML = `
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-shopping-bag"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">New order placed</div>
+                        <div class="activity-time">No recent activity</div>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">New user joined</div>
+                        <div class="activity-time">No recent activity</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        }
+        
+        // Load customer count from Firestore users collection
+        function loadCustomerCount() {
+            // Initialize Firebase
+            const firebaseConfig = {
+                apiKey: "AIzaSyAf3vcMWpDbBWe5Xn_RMAonO53RHqZ15bQ",
+                authDomain: "profile-80e12.firebaseapp.com",
+                projectId: "profile-80e12",
+                storageBucket: "profile-80e12.appspot.com",
+                messagingSenderId: "975400278491",
+                appId: "1:975400278491:web:afec2dcca155409ca8effe"
+            };
+            
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            const db = firebase.firestore();
+            
+            // Count documents in users collection
+            db.collection('users').get()
+                .then(snapshot => {
+                    const customerCount = snapshot.size;
+                    document.getElementById('totalCustomers').textContent = customerCount;
+                })
+                .catch(error => {
+                    console.error('Error loading customer count:', error);
+                    document.getElementById('totalCustomers').textContent = '0';
+                });
+        }
+
+        // Load 5 random featured products from MongoDB
+        function loadFeaturedProducts() {
+            fetch('/api/products')
+                .then(response => response.json())
+                .then(data => {
+                    const productsGrid = document.getElementById('productsGrid');
+                    productsGrid.innerHTML = '';
+                    
+                    if (data.products && data.products.length > 0) {
+                        // Shuffle array and take first 5 products
+                        const shuffled = data.products.sort(() => 0.5 - Math.random());
+                        const randomProducts = shuffled.slice(0, 5);
+                        
+                        randomProducts.forEach(product => {
+                            const productCard = `
+                                <div class="product-card">
+                                    <img src="${product.pictureUrl}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/150x100?text=No+Image'">
+                                    <div class="product-price">$${product.price}</div>
+                                </div>
+                            `;
+                            productsGrid.innerHTML += productCard;
+                        });
+                    } else {
+                        productsGrid.innerHTML = '<p>No products available</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading products:', error);
+                    document.getElementById('productsGrid').innerHTML = '<p>Error loading products</p>';
+                });
+        }
+
+
+    </script>
+</body>
+</html>

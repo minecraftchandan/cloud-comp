@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="https://i.pinimg.com/736x/f2/b6/9c/f2b69c4361ecc3e3a6b672aaf2fee5f4.jpg">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/profile.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+<header>
+    <a href="/home" class="home-icon">🏠</a>
+    <nav>
+        <a href="/products">Products</a>
+        <a href="/cart">Cart</a>
+        <a href="/orders">Orders</a>
+        <a href="/profile" class="active">Profile</a>
+        <a href="/admin" th:if="${session.username == 'admin'}">Admin Panel</a>
+        <a href="/Dashboard" th:if="${session.username == 'admin'}">Dashboard</a>
+        <a href="/logout">Logout</a>
+    </nav>
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+        <i class="fas fa-bars"></i>
+    </button>
+    <div class="mobile-nav-dropdown" id="mobileNavDropdown">
+        <a href="/products">Products</a>
+        <a href="/cart">Cart</a>
+        <a href="/orders">Orders</a>
+        <a href="/profile" class="active">Profile</a>
+        <a href="/admin" th:if="${session.username == 'admin'}">Admin Panel</a>
+        <a href="/Dashboard" th:if="${session.username == 'admin'}">Dashboard</a>
+        <a href="/logout">Logout</a>
+    </div>
+</header>
+<div class="profile-wrapper">
+    <div class="profile-container">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="profile-avatar">
+                <i class="fas fa-user-circle"></i>
+            </div>
+            <h2 class="profile-title">User Profile</h2>
+            <p class="profile-subtitle">Manage your personal information</p>
+        </div>
+
+        <!-- Profile Content -->
+        <div class="profile-content">
+            <div class="profile-section">
+                <h3 class="section-title">
+                    <i class="fas fa-user"></i>
+                    Personal Information
+                </h3>
+                
+                <div class="profile-grid">
+                    <div class="profile-field">
+                        <div class="field-icon"><i class="fas fa-user"></i></div>
+                        <div class="field-content">
+                            <label>Full Name</label>
+                            <span id="usernameText" class="field-value"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-field">
+                        <div class="field-icon"><i class="fas fa-envelope"></i></div>
+                        <div class="field-content">
+                            <label>Email Address</label>
+                            <span id="emailText" class="field-value"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-field">
+                        <div class="field-icon"><i class="fas fa-phone"></i></div>
+                        <div class="field-content">
+                            <label>Phone Number</label>
+                            <span id="phoneText" class="field-value"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-field">
+                        <div class="field-icon"><i class="fas fa-map-marker-alt"></i></div>
+                        <div class="field-content">
+                            <label>Address</label>
+                            <span id="addressText" class="field-value"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-field">
+                        <div class="field-icon"><i class="fas fa-calendar"></i></div>
+                        <div class="field-content">
+                            <label>Date of Birth</label>
+                            <span id="dobText" class="field-value"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-field">
+                        <div class="field-icon"><i class="fas fa-venus-mars"></i></div>
+                        <div class="field-content">
+                            <label>Gender</label>
+                            <span id="genderText" class="field-value"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <h3 class="section-title">
+                    <i class="fas fa-shield-alt"></i>
+                    Security
+                </h3>
+                
+                <div class="security-field">
+                    <div class="field-icon"><i class="fas fa-lock"></i></div>
+                    <div class="field-content">
+                        <label>Password</label>
+                        <span id="maskedPassword" class="field-value password-mask">••••••••</span>
+                    </div>
+                    <button class="btn-change-password" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                        <i class="fas fa-edit"></i>
+                        Change
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="profile-actions">
+            <button class="btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                <i class="fas fa-edit"></i>
+                Edit Profile
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toasts -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMsg"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editProfileForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3"><label>Email</label><input type="email" id="emailInput" class="form-control" required></div>
+                    <div class="mb-3"><label>Phone</label><input type="text" id="phoneInput" class="form-control" required></div>
+                    <div class="mb-3"><label>Address</label><input type="text" id="addressInput" class="form-control" required></div>
+                    <div class="mb-3"><label>Date of Birth</label><input type="date" id="dobInput" class="form-control" required></div>
+                    <div class="mb-3">
+                        <label>Gender</label>
+                        <select id="genderInput" class="form-control" required>
+                            <option value="">Select</option>
+                            <option>Male</option>
+                            <option>Female</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="changePasswordForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Change Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3"><label>New Password</label><input type="password" id="newPassword" class="form-control" required></div>
+                    <div class="mb-3"><label>Confirm Password</label><input type="password" id="confirmPassword" class="form-control" required></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger">Change Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyAf3vcMWpDbBWe5Xn_RMAonO53RHqZ15bQ",
+    authDomain: "profile-80e12.firebaseapp.com",
+    projectId: "profile-80e12",
+    storageBucket: "profile-80e12.appspot.com",
+    messagingSenderId: "975400278491",
+    appId: "1:975400278491:web:afec2dcca155409ca8effe",
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+async function getSessionUsername() {
+    try {
+        const res = await fetch("/api/session");
+        const session = await res.json();
+        return session.username;
+    } catch {
+        return null;
+    }
+}
+
+$(document).ready(async function () {
+    const username = await getSessionUsername();
+    if (!username) {
+        window.location.href = "/login";
+        return;
+    }
+
+    const docRef = db.collection("customers").doc(username);
+    const doc = await docRef.get();
+
+    $("#usernameText").text(username);
+
+    function fillProfile(data) {
+        $("#emailText").text(data.email || "");
+        $("#phoneText").text(data.phone || "");
+        $("#addressText").text(data.address || "");
+        $("#dobText").text(data.dob || "");
+        $("#genderText").text(data.gender || "");
+
+        $("#emailInput").val(data.email || "");
+        $("#phoneInput").val(data.phone || "");
+        $("#addressInput").val(data.address || "");
+        $("#dobInput").val(data.dob || "");
+        $("#genderInput").val(data.gender || "");
+    }
+
+    if (doc.exists) fillProfile(doc.data());
+
+    $("#editProfileForm").submit(async function (e) {
+        e.preventDefault();
+        const updated = {
+            email: $("#emailInput").val(),
+            phone: $("#phoneInput").val(),
+            address: $("#addressInput").val(),
+            dob: $("#dobInput").val(),
+            gender: $("#genderInput").val()
+        };
+        await docRef.set(updated, { merge: true });
+        fillProfile(updated);
+        const toast = new bootstrap.Toast(document.getElementById("successToast"));
+        $("#toastMsg").text("Profile Created");
+        toast.show();
+        $("#editProfileModal").modal("hide");
+    });
+
+    $("#changePasswordForm").submit(async function (e) {
+        e.preventDefault();
+        const newPass = $("#newPassword").val();
+        const confirm = $("#confirmPassword").val();
+        if (newPass !== confirm) return alert("Passwords do not match!");
+
+        await docRef.set({ password: newPass }, { merge: true });
+        $("#newPassword").val('');
+        $("#confirmPassword").val('');
+        $("#changePasswordModal").modal("hide");
+        const toast = new bootstrap.Toast(document.getElementById("successToast"));
+        $("#toastMsg").text("Password Changed. Logging out...");
+        toast.show();
+        setTimeout(() => { window.location.href = "/logout"; }, 2000);
+    });
+});
+
+function toggleMobileMenu() {
+    const dropdown = document.getElementById('mobileNavDropdown');
+    dropdown.classList.toggle('show');
+}
+
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('mobileNavDropdown');
+    const toggle = document.querySelector('.mobile-menu-toggle');
+    
+    if (!dropdown.contains(event.target) && !toggle.contains(event.target)) {
+        dropdown.classList.remove('show');
+    }
+});
+</script>
+</body>
+</html>

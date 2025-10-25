@@ -1,0 +1,159 @@
+/* Header Styling - Responsive Navbar */
+header {
+    position: relative;
+    z-index: 1000;
+    background-color: #007bff;
+    padding: 15px 20px;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.home-icon {
+    text-decoration: none;
+    color: white;
+    font-size: 18px;
+    transition: background-color 0.3s ease;
+}
+
+.home-icon:hover {
+    background-color: #0056b3;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+/* Desktop Navigation */
+header nav {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+header nav a {
+    text-decoration: none;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    font-family: sans-serif;
+    transition: background-color 0.3s ease;
+}
+
+header nav a:hover {
+    background-color: #0056b3;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+/* Mobile Menu Toggle */
+.mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.mobile-menu-toggle:hover {
+    background-color: #0056b3;
+    border-radius: 5px;
+}
+
+/* Mobile Dropdown Menu */
+.mobile-nav-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #007bff;
+    min-width: 200px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    border-radius: 0 0 10px 10px;
+    z-index: 1001;
+}
+
+.mobile-nav-dropdown.show {
+    display: block;
+}
+
+.mobile-nav-dropdown a {
+    display: block;
+    padding: 12px 20px;
+    text-decoration: none;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    transition: background-color 0.3s ease;
+}
+
+.mobile-nav-dropdown a:hover {
+    background-color: #0056b3;
+}
+
+.mobile-nav-dropdown a:last-child {
+    border-bottom: none;
+    border-radius: 0 0 10px 10px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    header {
+        padding: 12px 15px;
+    }
+    
+    .home-icon {
+        font-size: 16px;
+    }
+    
+    /* Hide desktop nav on mobile */
+    header nav {
+        display: none;
+    }
+    
+    /* Show mobile menu toggle */
+    .mobile-menu-toggle {
+        display: block;
+    }
+}
+
+@media (max-width: 480px) {
+    header {
+        padding: 10px 12px;
+    }
+    
+    .home-icon {
+        font-size: 14px;
+    }
+    
+    .mobile-nav-dropdown {
+        min-width: 180px;
+    }
+    
+    .mobile-nav-dropdown a {
+        padding: 10px 15px;
+        font-size: 14px;
+    }
+}
+
+/* Mobile Menu JavaScript - Add this script to pages */
+/*
+<script>
+function toggleMobileMenu() {
+    const dropdown = document.getElementById('mobileNavDropdown');
+    dropdown.classList.toggle('show');
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('mobileNavDropdown');
+    const toggle = document.querySelector('.mobile-menu-toggle');
+    
+    if (!dropdown.contains(event.target) && !toggle.contains(event.target)) {
+        dropdown.classList.remove('show');
+    }
+});
+</script>
+*/

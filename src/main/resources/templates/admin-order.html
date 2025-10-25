@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <link rel="icon" type="image/png" href="https://i.pinimg.com/736x/f2/b6/9c/f2b69c4361ecc3e3a6b672aaf2fee5f4.jpg">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Orders</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/orders.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAf3vcMWpDbBWe5Xn_RMAonO53RHqZ15bQ",
+            authDomain: "profile-80e12.firebaseapp.com",
+            projectId: "profile-80e12",
+            storageBucket: "profile-80e12.appspot.com",
+            messagingSenderId: "975400278491",
+            appId: "1:975400278491:web:afec2dcca155409ca8effe",
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+    </script>
+
+    <style>
+        .orders-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .user-dropdown {
+            background: rgba(44, 62, 80, 0.9);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .user-header {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .user-header:hover {
+            background: linear-gradient(135deg, #5a6fd8, #6a4190);
+        }
+
+        .user-orders {
+            display: none;
+            padding: 20px;
+        }
+
+        .order-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .order-id {
+            font-weight: 600;
+            color: #ecf0f1;
+        }
+
+        .order-date {
+            color: #bdc3c7;
+            font-size: 14px;
+        }
+
+        .order-total {
+            color: #e74c3c;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .order-products {
+            margin-top: 10px;
+        }
+
+        .product-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .product-image {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-right: 15px;
+        }
+
+        .product-details {
+            flex: 1;
+            color: #ecf0f1;
+        }
+
+        .product-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .product-price {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .no-orders {
+            text-align: center;
+            color: #bdc3c7;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        .dropdown-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .dropdown-icon.rotated {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+<header>
+    <a href="/home" class="home-icon">🏠</a>
+    <nav>
+            <a href="/products">Products</a>
+            <a href="/admin/products" th:if="${session.username == 'admin'}">Manage Products</a>
+            <a href="/admin/orders" th:if="${session.username == 'admin'}">Manage Orders</a>
+            <a href="/Dashboard" th:if="${session.username == 'admin'}">Dashboard</a>
+            <a href="/logout">Logout</a>
+        </nav>
+</header>
+
+<h1 style="text-align: center; color: white; margin: 30px 0;">Admin - All Orders</h1>
+
+<div class="orders-container">
+    <div id="ordersContainer">
+        <div class="no-orders">Loading orders...</div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        loadAllOrders();
+
+        function loadAllOrders() {
+            db.collection('orders').orderBy('orderDate', 'desc').get()
+                .then(snapshot => {
+                    const ordersByUser = {};
+                    
+                    snapshot.forEach(doc => {
+                        const order = doc.data();
+                        order.id = doc.id;
+                        
+                        const username = order.username || 'Unknown User';
+                        if (!ordersByUser[username]) {
+                            ordersByUser[username] = [];
+                        }
+                        ordersByUser[username].push(order);
+                    });
+
+                    displayOrdersByUser(ordersByUser);
+                })
+                .catch(error => {
+                    console.error('Error loading orders:', error);
+                    $('#ordersContainer').html('<div class="no-orders">Error loading orders</div>');
+                });
+        }
+
+        function displayOrdersByUser(ordersByUser) {
+            const container = $('#ordersContainer');
+            container.empty();
+
+            if (Object.keys(ordersByUser).length === 0) {
+                container.html('<div class="no-orders">No orders found</div>');
+                return;
+            }
+
+            Object.keys(ordersByUser).forEach(username => {
+                const orders = ordersByUser[username];
+                const totalOrders = orders.length;
+                
+                const userDropdown = `
+                    <div class="user-dropdown">
+                        <div class="user-header" data-username="${username}">
+                            <span><i class="fas fa-user"></i> ${username} (${totalOrders} orders)</span>
+                            <i class="fas fa-chevron-down dropdown-icon"></i>
+                        </div>
+                        <div class="user-orders">
+                            ${orders.map(order => createOrderHTML(order)).join('')}
+                        </div>
+                    </div>
+                `;
+                container.append(userDropdown);
+            });
+        }
+
+        function createOrderHTML(order) {
+            const orderDate = order.orderDate ? new Date(order.orderDate.seconds * 1000).toLocaleDateString() : 'N/A';
+            const total = order.items ? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2) : '0.00';
+            
+            const productsHTML = order.items ? order.items.map(item => `
+                <div class="product-item">
+                    <img src="${item.image}" alt="${item.name}" class="product-image" onerror="this.src='https://via.placeholder.com/50'">
+                    <div class="product-details">
+                        <div class="product-name">${item.name}</div>
+                        <div class="product-price">$${item.price} x ${item.quantity}</div>
+                    </div>
+                </div>
+            `).join('') : '<div style="color: #bdc3c7;">No items</div>';
+
+            return `
+                <div class="order-item">
+                    <div class="order-header">
+                        <div class="order-id">Order ID: ${order.id}</div>
+                        <div class="order-date">${orderDate}</div>
+                        <div class="order-total">$${total}</div>
+                    </div>
+                    <div class="order-products">
+                        ${productsHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Add click handler for dropdown toggle
+        $(document).on('click', '.user-header', function() {
+            const ordersDiv = $(this).next('.user-orders');
+            const icon = $(this).find('.dropdown-icon');
+            
+            ordersDiv.slideToggle();
+            icon.toggleClass('rotated');
+        });
+    });
+</script>
+</body>
+</html>
